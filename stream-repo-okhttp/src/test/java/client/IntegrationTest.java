@@ -21,6 +21,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -404,6 +405,25 @@ public class IntegrationTest {
         Feed feed = streamClient.newFeed("foo", "2");
         FlatActivityServiceImpl<SimpleActivity> flatActivityService = feed.newFlatActivityService(SimpleActivity.class);
         flatActivityService.getActivities(new FeedFilter.Builder().withLimit(50).withOffset(2).build());
+
+        //When adding activity with invalid fields
+        Feed newFeed = streamClient.newFeed("aggregated", "whatever");
+        AggregatedActivityServiceImpl<SimpleActivity> aggregatedActivityService =
+                feed.newAggregatedActivityService(SimpleActivity.class);
+
+        SimpleActivity activity = new SimpleActivity();
+        activity.setActor("actor");
+        activity.setObject("object");
+        activity.setTarget("target");
+        activity.setVerb("like");
+        ArrayList<String> toList=new ArrayList<>();
+        toList.add("2");//Should be "aggregated:2"
+        activity.setTo(toList);
+        try {
+            aggregatedActivityService.addActivity(activity);
+        }catch (IOException|StreamClientException ex){
+            assertThat(ex.getStackTrace().getClass().toString(), is(InvalidOrMissingInputException.class.toString()));
+        }
         streamClient.shutdown();
     }
 
